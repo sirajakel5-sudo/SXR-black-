@@ -1,11 +1,6 @@
 -- ============================================
--- مكتبة KA7 Library - النسخة النهائية المعدلة
--- إصلاح جميع المشاكل:
--- - زر X يظهر نافذة تأكيد (نعم/لا) مع UIStroke
--- - زر Y يصغر الواجهة بشكل صحيح
--- - خلفية الواجهة والزر العائم: rbxassetid://87950815567502
--- - تبويب "الحجم" يظهر تلقائياً (بدون ديسكورد)
--- - جميع الأخطاء السابقة (MainCorner, Comnection) تم إصلاحها
+-- مكتبة KA7 Library - إصلاح مشكلة ظهور الكلمات
+-- زر X يظهر نافذة سوداء مع كلمات (نعم / إلغاء) واضحة
 -- ============================================
 
 local MarketplaceService = game:GetService("MarketplaceService")
@@ -54,7 +49,7 @@ local UIScale = ViewportSize.Y / 450
 local Settings = redzlib.Settings
 local Flags = redzlib.Flags
 
--- دوال مساعدة (SetProps, Create, إلخ) - تم تضمينها كاملة
+-- دوال مساعدة
 local SetProps, SetChildren, InsertTheme, Create
 do
     InsertTheme = function(Instance, Type)
@@ -447,7 +442,6 @@ function redzlib:MakeWindow(Configs)
         Name = "Hub"
     }), "Main")
 
-    -- الخلفية (نفس صورة الزر العائم)
     local WindowBackground = Create("ImageLabel", MainFrame, {
         Name = "WindowBackground",
         Size = UDim2.new(1, 0, 1, 0),
@@ -554,84 +548,6 @@ function redzlib:MakeWindow(Configs)
         Name = "Containers"
     })
 
-    -- Particles (يمكنك حذفها إذا أردت التبسيط)
-    local ParticleContainer = Create("Frame", Containers, {
-        Size = UDim2.new(1, 0, 1, 0),
-        BackgroundTransparency = 1,
-        Name = "ThemeParticles",
-        ZIndex = -5,
-        ClipsDescendants = true
-    })
-    local ParticleConfig = {MaxParticles = 30, SpawnRate = 0.1, ParticleSize = {Min = 6, Max = 10}, ParticleSpeed = {Min = 15, Max = 25}, ParticleLifetime = 6}
-    local ActiveParticles = {}
-    local LastSpawn = 0
-    local function CreateCyberpunkParticle()
-        if #ActiveParticles >= ParticleConfig.MaxParticles then return end
-        local containerSize = ParticleContainer.AbsoluteSize
-        local startX = math.random(10, containerSize.X - 10)
-        local startY = containerSize.Y + 20
-        local size = math.random(ParticleConfig.ParticleSize.Min, ParticleConfig.ParticleSize.Max)
-        local speed = math.random(ParticleConfig.ParticleSpeed.Min, ParticleConfig.ParticleSpeed.Max)
-        local particleColor = Theme["Color Theme"]
-        local Particle = Create("Frame", ParticleContainer, {
-            Size = UDim2.fromOffset(size, size),
-            Position = UDim2.fromOffset(startX, startY),
-            BackgroundColor3 = particleColor,
-            BackgroundTransparency = 0.2,
-            BorderSizePixel = 0
-        })
-        Create("UICorner", Particle, {CornerRadius = UDim.new(0.5, 0)})
-        local Glow = Create("Frame", Particle, {
-            Size = UDim2.new(1, 6, 1, 6),
-            Position = UDim2.new(0.5, 0, 0.5, 0),
-            AnchorPoint = Vector2.new(0.5, 0.5),
-            BackgroundColor3 = particleColor,
-            BackgroundTransparency = 0.7,
-            ZIndex = -1
-        })
-        Create("UICorner", Glow, {CornerRadius = UDim.new(0.5, 0)})
-        local ParticleData = {Frame = Particle, Glow = Glow, StartTime = tick(), Speed = speed, Direction = Vector2.new(0, -speed), OriginalColor = particleColor}
-        Particle.BackgroundTransparency = 1
-        Glow.BackgroundTransparency = 1
-        CreateTween({Particle, "BackgroundTransparency", 0.2, 0.8})
-        CreateTween({Glow, "BackgroundTransparency", 0.7, 0.8})
-        table.insert(ActiveParticles, ParticleData)
-    end
-    local function UpdateCyberpunkParticles()
-        for i = #ActiveParticles, 1, -1 do
-            local particle = ActiveParticles[i]
-            local elapsed = tick() - particle.StartTime
-            if elapsed >= ParticleConfig.ParticleLifetime or particle.Frame.Position.Y.Offset < -20 then
-                CreateTween({particle.Frame, "BackgroundTransparency", 1, 0.5})
-                CreateTween({particle.Glow, "BackgroundTransparency", 1, 0.5})
-                task.spawn(function()
-                    task.wait(0.5)
-                    if particle.Frame and particle.Frame.Parent then particle.Frame:Destroy() end
-                end)
-                table.remove(ActiveParticles, i)
-            else
-                local currentPos = particle.Frame.Position
-                local newY = currentPos.Y.Offset + particle.Direction.Y * 0.016
-                particle.Frame.Position = UDim2.fromOffset(currentPos.X.Offset, newY)
-                local lifeRatio = elapsed / ParticleConfig.ParticleLifetime
-                if lifeRatio > 0.8 then
-                    local fadeAlpha = 0.2 * (1 - ((lifeRatio - 0.8) / 0.2))
-                    particle.Frame.BackgroundTransparency = math.max(1 - fadeAlpha, 0.95)
-                end
-            end
-        end
-    end
-    local function SpawnCyberpunkSystem()
-        if tick() - LastSpawn >= ParticleConfig.SpawnRate and MainFrame.Visible then
-            CreateCyberpunkParticle()
-            LastSpawn = tick()
-        end
-    end
-    local ParticleConnection = RunService.Heartbeat:Connect(function()
-        UpdateCyberpunkParticles()
-        SpawnCyberpunkSystem()
-    end)
-
     local ControlSize1, ControlSize2 = MakeDrag(Create("ImageButton", MainFrame, {
         Size = UDim2.new(0, 35, 0, 35),
         Position = MainFrame.Size,
@@ -690,85 +606,117 @@ function redzlib:MakeWindow(Configs)
 
     local Window, FirstTab = {}, false
 
-    -- دالة الإغلاق بنافذة تأكيد (نعم / لا)
+    -- ========================================
+    -- نافذة التأكيد عند الضغط على زر الإغلاق (X)
+    -- النصوص (نعم/إلغاء) تظهر بشكل واضح باللون الأبيض
+    -- ========================================
     function Window:CloseBtn()
+        -- إنشاء نافذة الحوار المنبثقة
         local DialogFrame = Create("Frame", MainFrame, {
             Name = "CustomDialog",
-            Size = UDim2.fromOffset(220, 100),
-            Position = UDim2.new(0.5, -110, 0.5, -50),
-            BackgroundColor3 = Theme["Color Hub 2"],
-            BackgroundTransparency = 0.1,
+            Size = UDim2.fromOffset(260, 120),
+            Position = UDim2.new(0.5, -130, 0.5, -60),
+            BackgroundColor3 = Color3.fromRGB(20, 20, 20),  -- خلفية رمادية غامقة
+            BackgroundTransparency = 0,
             Active = true,
             ZIndex = 10
         })
         Make("Corner", DialogFrame, UDim.new(0, 8))
-        Make("Stroke", DialogFrame, Theme["Color Stroke"], 1.5)
-        Make("Gradient", DialogFrame, {Rotation = 45})
+        
+        -- إضافة Stroke حول النافذة
+        local StrokeD = Create("UIStroke", DialogFrame, {
+            Color = Color3.fromRGB(255, 255, 255),
+            Thickness = 1.5,
+            ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+        })
 
-        local TitleD = InsertTheme(Create("TextLabel", DialogFrame, {
-            Size = UDim2.new(1, -20, 0, 25),
+        -- عنوان النافذة (باللون الأبيض)
+        local TitleD = Create("TextLabel", DialogFrame, {
+            Size = UDim2.new(1, -20, 0, 30),
             Position = UDim2.new(0, 10, 0, 5),
-            Text = "إغلاق السكربت",
+            Text = "❌ إغلاق السكربت",
             Font = Enum.Font.GothamBold,
             TextSize = 14,
-            TextColor3 = Theme["Color Text"],
-            BackgroundTransparency = 1
-        }), "Text")
-        local Msg = InsertTheme(Create("TextLabel", DialogFrame, {
-            Size = UDim2.new(1, -20, 0, 30),
-            Position = UDim2.new(0, 10, 0, 30),
-            Text = "هل تريد إغلاق السكربت؟",
-            Font = Enum.Font.Gotham,
-            TextSize = 11,
-            TextColor3 = Theme["Color Dark Text"],
-            BackgroundTransparency = 1
-        }), "DarkText")
-
-        local ButtonsHolder = Create("Frame", DialogFrame, {
-            Size = UDim2.new(1, -20, 0, 30),
-            Position = UDim2.new(0, 10, 1, -40),
+            TextColor3 = Color3.fromRGB(255, 255, 255),  -- أبيض
             BackgroundTransparency = 1
         })
 
+        -- نص الرسالة (باللون الأبيض)
+        local Msg = Create("TextLabel", DialogFrame, {
+            Size = UDim2.new(1, -20, 0, 35),
+            Position = UDim2.new(0, 10, 0, 38),
+            Text = "هل تريد إغلاق السكربت بالكامل؟",
+            Font = Enum.Font.GothamMedium,
+            TextSize = 12,
+            TextColor3 = Color3.fromRGB(220, 220, 220),  -- أبيض مائل للرمادي
+            BackgroundTransparency = 1
+        })
+
+        -- حاوية الأزرار
+        local ButtonsHolder = Create("Frame", DialogFrame, {
+            Size = UDim2.new(1, -20, 0, 35),
+            Position = UDim2.new(0, 10, 1, -45),
+            BackgroundTransparency = 1
+        })
+
+        -- زر "نعم" (أخضر غامق مع نص أبيض)
         local YesButton = Create("TextButton", ButtonsHolder, {
             Size = UDim2.new(0.45, 0, 1, 0),
             Position = UDim2.new(0, 0, 0, 0),
-            Text = "نعم",
+            Text = "✅ نعم",
             Font = Enum.Font.GothamBold,
-            TextSize = 12,
-            BackgroundColor3 = Theme["Color Theme"],
-            TextColor3 = Color3.fromRGB(0, 0, 0),
+            TextSize = 13,
+            BackgroundColor3 = Color3.fromRGB(0, 150, 0),  -- أخضر
+            TextColor3 = Color3.fromRGB(255, 255, 255),   -- نص أبيض
             AutoButtonColor = false
         })
-        Make("Corner", YesButton, UDim.new(0, 4))
-        Make("Stroke", YesButton, Theme["Color Stroke"], 1)
-
+        Make("Corner", YesButton, UDim.new(0, 5))
+        
+        -- زر "إلغاء" (أحمر مع نص أبيض)
         local CancelButton = Create("TextButton", ButtonsHolder, {
             Size = UDim2.new(0.45, 0, 1, 0),
             Position = UDim2.new(0.55, 0, 0, 0),
-            Text = "لا",   -- تم التعديل من "إلغاء" إلى "لا"
+            Text = "❌ إلغاء",
             Font = Enum.Font.GothamBold,
-            TextSize = 12,
-            BackgroundColor3 = Theme["Color Hub 2"],
-            TextColor3 = Theme["Color Text"],
+            TextSize = 13,
+            BackgroundColor3 = Color3.fromRGB(150, 0, 0),  -- أحمر
+            TextColor3 = Color3.fromRGB(255, 255, 255),   -- نص أبيض
             AutoButtonColor = false
         })
-        Make("Corner", CancelButton, UDim.new(0, 4))
-        Make("Stroke", CancelButton, Theme["Color Stroke"], 1)
+        Make("Corner", CancelButton, UDim.new(0, 5))
 
+        -- تأثير عند تمرير الماوس على الأزرار
+        YesButton.MouseEnter:Connect(function() YesButton.BackgroundColor3 = Color3.fromRGB(0, 180, 0) end)
+        YesButton.MouseLeave:Connect(function() YesButton.BackgroundColor3 = Color3.fromRGB(0, 150, 0) end)
+        CancelButton.MouseEnter:Connect(function() CancelButton.BackgroundColor3 = Color3.fromRGB(180, 0, 0) end)
+        CancelButton.MouseLeave:Connect(function() CancelButton.BackgroundColor3 = Color3.fromRGB(150, 0, 0) end)
+
+        -- عند الضغط على نعم: يتم إغلاق السكربت بالكامل
         YesButton.Activated:Connect(function()
             ScreenGui:Destroy()
         end)
+
+        -- عند الضغط على إلغاء: يتم إغلاق نافذة التأكيد فقط
         CancelButton.Activated:Connect(function()
             DialogFrame:Destroy()
         end)
 
-        local function CloseDialog(Input)
+        -- إغلاق النافذة إذا ضغط المستخدم خارجها
+        local function CloseDialogOnClickOutside(Input)
             if Input.UserInputType == Enum.UserInputType.MouseButton1 then
-                DialogFrame:Destroy()
+                task.wait(0.05)
+                if DialogFrame and DialogFrame.Parent then
+                    local mousePos = UserInputService:GetMouseLocation()
+                    local absolutePos = DialogFrame.AbsolutePosition
+                    local absoluteSize = DialogFrame.AbsoluteSize
+                    if mousePos.X < absolutePos.X or mousePos.X > absolutePos.X + absoluteSize.X or
+                       mousePos.Y < absolutePos.Y or mousePos.Y > absolutePos.Y + absoluteSize.Y then
+                        DialogFrame:Destroy()
+                    end
+                end
             end
         end
-        UserInputService.InputBegan:Connect(CloseDialog)
+        UserInputService.InputBegan:Connect(CloseDialogOnClickOutside)
     end
 
     function Window:MinimizeBtn()
@@ -1626,12 +1574,16 @@ function redzlib:MakeWindow(Configs)
         return Tab
     end
 
-    -- إضافة تبويب الحجم تلقائياً (بدون ديسكورد)
-    local SizeTab = Window:MakeTab({"الحجم", "settings"})
+    -- إضافة تبويب الحجم تلقائياً
+    local SizeTab = Window:MakeTab({"⚙️ الحجم", "settings"})
     SizeTab:AddSizeChanger()
 
+    -- ربط زر الإغلاق (X) بوظيفة التأكيد
     CloseButton.Activated:Connect(Window.CloseBtn)
+    
+    -- ربط زر التصغير (Y) بوظيفة التصغير
     MinimizeButton.Activated:Connect(Window.MinimizeBtn)
+    
     return Window
 end
 
